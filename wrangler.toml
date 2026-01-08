@@ -28,5 +28,16 @@ mode = "smart"
 
 # Memory and CPU limits
 [limits]
-cpu_ms = 100
-memory = 128
+cpu_ms = 200  # Increased for VLESS/Trojan protocol processing
+memory = 256  # Increased for WebSocket connection handling
+
+# WebSocket-specific configuration for VLESS and Trojan
+[websocket]
+enabled = true
+max_connections = 100
+idle_timeout = 300
+
+# Protocol-specific optimizations
+[protocol]
+vless = { enabled = true, websocket = true }
+trojan = { enabled = true, websocket = true }

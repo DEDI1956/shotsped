@@ -10,19 +10,26 @@ A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered 
 ## ✨ Key Features
 
 ### 🎯 **Full Protocol Support**
-- **HTTP/HTTPS** - Standard web proxy
-- **SOCKS4/SOCKS5** - Socket proxy protocols  
-- **Trojan** - Modern proxy protocol
-- **VLESS** - Lightweight proxy protocol
-- **VMess** - V2Ray proxy protocol
-- **Shadowsocks** - Encrypted proxy protocol
+- **HTTP/HTTPS** - Standard web proxy with full header support
+- **SOCKS4/SOCKS5** - Socket proxy protocols with authentication  
+- **Trojan** - Modern proxy protocol with TLS-like encryption and bidirectional WebSocket support
+- **VLESS** - Lightweight proxy protocol with WebSocket and TCP support
+- **VMess** - V2Ray proxy protocol with advanced routing
+- **Shadowsocks** - Encrypted proxy protocol with AES encryption
 
 ### 🤖 **AI-Powered Error Handling**
-- Real-time error analysis and classification
-- Intelligent solution recommendations
-- Pattern-based error detection
-- Severity assessment and alerts
-- Automated troubleshooting suggestions
+- **Real-time Analysis**: Instant error detection and classification
+- **Protocol-Specific**: Custom error patterns for each protocol (VLESS, Trojan, etc.)
+- **Intelligent Solutions**: Context-aware recommendations for each error type
+- **Severity Assessment**: Automatic prioritization of critical issues
+- **Automated Troubleshooting**: Step-by-step resolution guides
+
+#### AI Error Coverage
+- **VLESS Errors**: WebSocket connection failures, protocol mismatches
+- **Trojan Errors**: TLS handshake issues, header validation failures
+- **Network Errors**: Timeout detection, DNS resolution problems
+- **Protocol Errors**: Unsupported operations, version mismatches
+- **Authentication Errors**: Credential validation, permission issues
 
 ### 💎 **Luxury Web Interface**
 - Modern, responsive design with premium aesthetics
@@ -30,6 +37,12 @@ A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered 
 - Interactive configuration management
 - Advanced logging with color-coded entries
 - Mobile-friendly responsive layout
+
+### 🔄 **Bidirectional Communication**
+- **WebSocket Support**: Full bidirectional communication for VLESS and Trojan protocols
+- **Real-time Messaging**: Instant message delivery and response handling
+- **Connection Persistence**: Long-lived connections with automatic reconnection
+- **Protocol-Specific**: Optimized for each protocol's communication patterns
 
 ### 🛡️ **Enterprise Features**
 - CORS support for cross-origin requests
@@ -90,6 +103,36 @@ wrangler deploy
 
 # Or deploy to specific environment
 wrangler deploy --env production
+
+# For VLESS/Trojan WebSocket support
+wrangler deploy --env production --websocket
+```
+
+### 4. **VLESS & Trojan Specific Deployment**
+
+#### WebSocket Configuration
+Ensure your Wrangler configuration includes:
+```toml
+[websocket]
+enabled = true
+max_connections = 100
+idle_timeout = 300
+```
+
+#### Protocol Optimization
+For best performance with VLESS and Trojan:
+```toml
+[protocol]
+vless = { enabled = true, websocket = true }
+trojan = { enabled = true, websocket = true }
+```
+
+#### Resource Limits
+Recommended limits for VLESS/Trojan:
+```toml
+[limits]
+cpu_ms = 200  # For protocol processing
+memory = 256  # For WebSocket connections
 ```
 
 ### 4. **Configure Domain (Optional)**
@@ -242,6 +285,52 @@ this.errorPatterns = {
 - Error distribution
 - Protocol usage statistics
 - Response time monitoring
+
+### **VLESS & Trojan Implementation Details**
+
+#### VLESS Protocol
+- **WebSocket Mode**: Full bidirectional communication using Cloudflare WebSocket support
+- **TCP Mode**: Binary protocol handling with efficient data transfer
+- **Header Support**: VLESS protocol headers and metadata preservation
+- **Connection Management**: Automatic connection tracking and cleanup
+
+#### Trojan Protocol
+- **TLS-like Encryption**: Protocol-level security with encrypted headers
+- **WebSocket Support**: Real-time bidirectional communication
+- **TCP Fallback**: Standard TCP connections for compatibility
+- **Header Injection**: Trojan-specific headers for protocol identification
+
+## 🔧 Protocol Configuration
+
+### VLESS Configuration Example
+```json
+{
+  "protocol": "vless",
+  "target": "your-server.com",
+  "port": 443,
+  "method": "POST",
+  "websocket": true,
+  "headers": {
+    "X-VLESS-Protocol": "vless",
+    "X-VLESS-Version": "1.0"
+  }
+}
+```
+
+### Trojan Configuration Example
+```json
+{
+  "protocol": "trojan",
+  "target": "your-server.com",
+  "port": 443,
+  "method": "POST",
+  "websocket": true,
+  "headers": {
+    "X-Trojan-Protocol": "trojan",
+    "X-Trojan-Version": "1.0"
+  }
+}
+```
 
 ### **Health Checks**
 Automated health checks every 5 minutes:
