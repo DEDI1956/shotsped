@@ -73,6 +73,16 @@ A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered 
                        └──────────────────┘
 ```
 
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | Main documentation (you are here) |
+| [QUICKSTART.md](QUICKSTART.md) | Get started in 3 minutes |
+| [ACCOUNT_GUIDE.md](ACCOUNT_GUIDE.md) | Complete account creation guide (Indonesian) |
+| [API_EXAMPLES.md](API_EXAMPLES.md) | API usage examples (cURL, JS, Python) |
+| [CHANGELOG.md](CHANGELOG.md) | Version history and changes |
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -137,18 +147,25 @@ Access the luxurious web interface at your deployed URL:
    - Success rate percentage
    - System uptime tracker
 
-2. **Proxy Configuration**
+2. **Account Creation (V2Ray/Nekobox Compatible)**
+   - Create VLESS/Trojan accounts instantly
+   - Generate shareable links for V2Ray clients
+   - Support for both WS TLS and non-TLS connections
+   - One-click copy to clipboard
+   - Manage multiple accounts
+
+3. **Proxy Configuration**
    - Select protocol (HTTP, HTTPS, SOCKS5, Trojan, etc.)
    - Enter target URL/IP
    - Configure port numbers
    - Set request methods
 
-3. **Route Management**
+4. **Route Management**
    - Add/remove proxy routes
    - View active connections
    - Monitor route performance
 
-4. **AI Error Handler**
+5. **AI Error Handler**
    - Automatic error analysis
    - Smart solution suggestions
    - Pattern recognition
@@ -159,6 +176,52 @@ Access the luxurious web interface at your deployed URL:
 #### Status Check
 ```http
 GET /api/status
+```
+
+#### Account Management (NEW)
+```http
+# Create VLESS/Trojan account
+POST /api/accounts
+Content-Type: application/json
+
+{
+  "protocol": "vless",
+  "host": "your-worker.workers.dev",
+  "port": "443",
+  "path": "/ws",
+  "name": "My VLESS Account",
+  "security": "tls"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Account created successfully",
+  "account": {
+    "id": "uuid-here",
+    "protocol": "vless",
+    "uuid": "generated-uuid",
+    "host": "your-worker.workers.dev",
+    "port": "443",
+    "path": "/ws",
+    "security": "tls",
+    "name": "My VLESS Account",
+    "link": "vless://uuid@host:port?type=ws&security=tls&path=/ws&host=host#name",
+    "created": "2024-01-01T00:00:00.000Z"
+  }
+}
+
+# Get all accounts
+GET /api/accounts
+
+# Get specific account
+GET /api/accounts?id=account-id
+
+# Get accounts by protocol
+GET /api/accounts?protocol=vless
+
+# Delete account
+DELETE /api/accounts?id=account-id
 ```
 
 #### Proxy Request
@@ -193,6 +256,91 @@ DELETE /api/routes?protocol=https&port=443
 ```http
 GET /api/stats
 ```
+
+## 📱 V2Ray/Nekobox Client Setup
+
+### **Creating Accounts**
+
+1. **Access the Web Interface**
+   - Open your deployed Worker URL
+   - Navigate to "Create Account" section
+
+2. **Configure Account**
+   - **Protocol**: Choose VLESS or Trojan
+   - **Host**: Your Worker domain (auto-filled)
+   - **Port**: 443 (for TLS) or 80 (for non-TLS)
+   - **Path**: WebSocket path (default: /ws)
+   - **Name**: Account identifier
+   - **Security**: TLS (recommended) or none
+
+3. **Generate Link**
+   - Click "Create Account" button
+   - Account link will be generated automatically
+   - Click "Copy Link" to copy to clipboard
+
+4. **Import to Client**
+   - Open V2Ray/Nekobox/v2rayNG app
+   - Click "Add Configuration" or "+"
+   - Paste the copied link
+   - Save and connect
+
+### **Link Format Examples**
+
+#### VLESS with TLS (Recommended)
+```
+vless://uuid@your-worker.workers.dev:443?type=ws&security=tls&path=/ws&host=your-worker.workers.dev&sni=your-worker.workers.dev#MyAccount
+```
+
+#### VLESS without TLS
+```
+vless://uuid@your-worker.workers.dev:80?type=ws&security=none&path=/ws&host=your-worker.workers.dev#MyAccount
+```
+
+#### Trojan with TLS (Recommended)
+```
+trojan://password@your-worker.workers.dev:443?type=ws&security=tls&path=/ws&host=your-worker.workers.dev&sni=your-worker.workers.dev#MyAccount
+```
+
+#### Trojan without TLS
+```
+trojan://password@your-worker.workers.dev:80?type=ws&security=none&path=/ws&host=your-worker.workers.dev#MyAccount
+```
+
+### **Supported V2Ray Clients**
+
+- ✅ **V2RayNG** (Android)
+- ✅ **Nekobox** (Android)
+- ✅ **Shadowrocket** (iOS)
+- ✅ **V2RayN** (Windows)
+- ✅ **V2RayX** (macOS)
+- ✅ **v2ray-core** (Linux)
+- ✅ **Qv2ray** (Cross-platform)
+
+### **Connection Testing**
+
+1. After importing the link to your client
+2. Select the configuration
+3. Click "Connect" or "Start"
+4. Test your connection with a web browser
+5. Check the Worker's web interface for connection stats
+
+### **Troubleshooting V2Ray Connections**
+
+#### Connection Failed
+- ✅ Verify Worker is deployed and accessible
+- ✅ Check if host/domain is correct
+- ✅ Ensure port matches security setting (443 for TLS, 80 for non-TLS)
+- ✅ Verify WebSocket path is correct (/ws by default)
+
+#### TLS Handshake Failed
+- ✅ Use TLS security for port 443
+- ✅ Use none security for port 80
+- ✅ Check SNI matches the host domain
+
+#### Authentication Failed
+- ✅ Regenerate account if UUID/password changed
+- ✅ Verify link was copied completely
+- ✅ Check protocol matches (VLESS or Trojan)
 
 ## 🔧 Configuration
 

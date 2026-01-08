@@ -1,7 +1,23 @@
 /**
  * VLES Trojan Worker - Advanced Proxy Solution
- * Features: All protocols support, AI error handling, luxury web UI
+ * Features: All protocols support, AI error handling, luxury web UI, V2Ray account management
  * Ready for Cloudflare deployment
+ * 
+ * NEW FEATURES:
+ * - Account Management: Create VLESS/Trojan accounts with shareable links
+ * - V2Ray Compatible: Generate links ready for V2RayNG, Nekobox, Shadowrocket, etc.
+ * - WS TLS & Non-TLS: Support both secure and non-secure WebSocket connections
+ * - One-Click Copy: Easy copy-to-clipboard functionality for sharing
+ * - Multi-Account: Manage multiple accounts with unique identifiers
+ * 
+ * API Endpoints:
+ * - POST /api/accounts - Create new VLESS/Trojan account
+ * - GET /api/accounts - Get all accounts or filter by protocol/id
+ * - DELETE /api/accounts - Delete specific account
+ * 
+ * Link Formats:
+ * - VLESS: vless://UUID@HOST:PORT?type=ws&security=tls&path=/ws&host=HOST&sni=HOST#NAME
+ * - Trojan: trojan://PASSWORD@HOST:PORT?type=ws&security=tls&path=/ws&host=HOST&sni=HOST#NAME
  */
 
 const LUXURY_CSS = `
@@ -249,6 +265,26 @@ body {
   opacity: 0.8;
 }
 
+code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+.account-link-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--gold-accent);
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 10px;
+}
+
 @media (max-width: 768px) {
   .header h1 {
     font-size: 2em;
@@ -400,10 +436,130 @@ class VLESRouter {
   }
 }
 
+class AccountManager {
+  constructor() {
+    this.accounts = new Map();
+  }
+  
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+  
+  generatePassword(length = 32) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  }
+  
+  createVLESSLink(uuid, host, port, path, security, name, type = 'ws') {
+    const params = new URLSearchParams({
+      type: type,
+      security: security,
+      path: path,
+      host: host
+    });
+    
+    // Add SNI for TLS
+    if (security === 'tls') {
+      params.append('sni', host);
+    }
+    
+    return `vless://${uuid}@${host}:${port}?${params.toString()}#${encodeURIComponent(name)}`;
+  }
+  
+  createTrojanLink(password, host, port, path, security, name, type = 'ws') {
+    const params = new URLSearchParams({
+      type: type,
+      security: security,
+      path: path,
+      host: host
+    });
+    
+    // Add SNI for TLS
+    if (security === 'tls') {
+      params.append('sni', host);
+    }
+    
+    return `trojan://${password}@${host}:${port}?${params.toString()}#${encodeURIComponent(name)}`;
+  }
+  
+  createAccount(protocol, host, port, path, name, security = 'tls') {
+    const accountId = this.generateUUID();
+    let uuid, password, link;
+    
+    if (protocol.toLowerCase() === 'vless') {
+      uuid = this.generateUUID();
+      link = this.createVLESSLink(uuid, host, port, path, security, name);
+      
+      this.accounts.set(accountId, {
+        id: accountId,
+        protocol: 'vless',
+        uuid: uuid,
+        host: host,
+        port: port,
+        path: path,
+        security: security,
+        name: name,
+        link: link,
+        created: new Date().toISOString()
+      });
+      
+      return this.accounts.get(accountId);
+      
+    } else if (protocol.toLowerCase() === 'trojan') {
+      password = this.generatePassword(32);
+      link = this.createTrojanLink(password, host, port, path, security, name);
+      
+      this.accounts.set(accountId, {
+        id: accountId,
+        protocol: 'trojan',
+        password: password,
+        host: host,
+        port: port,
+        path: path,
+        security: security,
+        name: name,
+        link: link,
+        created: new Date().toISOString()
+      });
+      
+      return this.accounts.get(accountId);
+    }
+    
+    throw new Error(`Unsupported protocol: ${protocol}`);
+  }
+  
+  getAccount(accountId) {
+    return this.accounts.get(accountId);
+  }
+  
+  getAllAccounts() {
+    return Array.from(this.accounts.values());
+  }
+  
+  deleteAccount(accountId) {
+    return this.accounts.delete(accountId);
+  }
+  
+  getAccountsByProtocol(protocol) {
+    return Array.from(this.accounts.values()).filter(
+      account => account.protocol.toLowerCase() === protocol.toLowerCase()
+    );
+  }
+}
+
 class VLESProxy {
   constructor() {
     this.ai = new VLESAI();
     this.router = new VLESRouter();
+    this.accountManager = new AccountManager();
     this.activeConnections = new Map();
     this.totalRequests = 0;
     this.errorCount = 0;
@@ -828,6 +984,9 @@ export default {
         case '/api/stats':
           return handleStats(request, corsHeaders);
         
+        case '/api/accounts':
+          return handleAccounts(request, corsHeaders);
+        
         default:
           return new Response('Not Found', { 
             status: 404, 
@@ -866,6 +1025,10 @@ async function handleWebUI(request, corsHeaders) {
         <div class="header">
             <h1>🚀 VLES TROJAN WORKER</h1>
             <p>Advanced Proxy Solution with AI Error Handling</p>
+            <div style="margin-top: 15px; padding: 10px; background: rgba(255, 215, 0, 0.2); border-radius: 10px; border: 1px solid var(--gold-accent);">
+                <strong>✨ NEW:</strong> Create VLESS/Trojan accounts for V2Ray, Nekobox, and more! 
+                📱 Ready-to-copy links for instant setup. Supports WS TLS & Non-TLS.
+            </div>
         </div>
         
         <div class="status-grid">
@@ -885,6 +1048,54 @@ async function handleWebUI(request, corsHeaders) {
                 <h3>⏱️ Uptime</h3>
                 <p id="uptime">0s</p>
             </div>
+        </div>
+        
+        <div class="config-section">
+            <h2>🔐 Create Account (V2Ray/Nekobox)</h2>
+            
+            <div class="form-group">
+                <label for="acc-protocol">Protocol</label>
+                <select id="acc-protocol" class="form-control">
+                    <option value="vless">VLESS</option>
+                    <option value="trojan">Trojan</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="acc-host">Host/Domain</label>
+                <input type="text" id="acc-host" class="form-control" placeholder="your-worker.workers.dev" value="">
+            </div>
+            
+            <div class="form-group">
+                <label for="acc-port">Port</label>
+                <input type="number" id="acc-port" class="form-control" placeholder="443" value="443">
+            </div>
+            
+            <div class="form-group">
+                <label for="acc-path">Path</label>
+                <input type="text" id="acc-path" class="form-control" placeholder="/ws" value="/ws">
+            </div>
+            
+            <div class="form-group">
+                <label for="acc-name">Account Name</label>
+                <input type="text" id="acc-name" class="form-control" placeholder="My Account" value="">
+            </div>
+            
+            <div class="form-group">
+                <label for="acc-security">Security</label>
+                <select id="acc-security" class="form-control">
+                    <option value="tls">TLS (HTTPS/WSS)</option>
+                    <option value="none">Non-TLS (HTTP/WS)</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-success" onclick="createAccount()">➕ Create Account</button>
+            <button class="btn btn-primary" onclick="loadAccounts()">📋 Show All Accounts</button>
+        </div>
+        
+        <div id="account-display" class="config-section" style="display: none;">
+            <h2>📋 Created Accounts</h2>
+            <div id="accounts-list"></div>
         </div>
         
         <div class="config-section">
@@ -1075,9 +1286,148 @@ async function handleWebUI(request, corsHeaders) {
             addLog('Logs cleared', 'info');
         }
         
+        function createAccount() {
+            const protocol = document.getElementById('acc-protocol').value;
+            const host = document.getElementById('acc-host').value;
+            const port = document.getElementById('acc-port').value;
+            const path = document.getElementById('acc-path').value;
+            const name = document.getElementById('acc-name').value;
+            const security = document.getElementById('acc-security').value;
+            
+            if (!host || !name) {
+                addLog('Please fill in Host and Account Name', 'error');
+                return;
+            }
+            
+            addLog('Creating account: ' + name + ' (' + protocol.toUpperCase() + ')', 'info');
+            
+            fetch('/api/accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ protocol, host, port, path, name, security })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog('Account created successfully!', 'success');
+                    displayAccount(data.account);
+                } else {
+                    addLog('Failed to create account: ' + data.message, 'error');
+                }
+            })
+            .catch(error => addLog('Error creating account: ' + error.message, 'error'));
+        }
+        
+        function displayAccount(account) {
+            const accountDisplay = document.getElementById('account-display');
+            const accountsList = document.getElementById('accounts-list');
+            
+            const accountCard = document.createElement('div');
+            accountCard.className = 'status-card';
+            accountCard.style.marginBottom = '20px';
+            accountCard.innerHTML = `
+                <h3>🔐 ${account.name}</h3>
+                <p><strong>Protocol:</strong> ${account.protocol.toUpperCase()}</p>
+                <p><strong>Host:</strong> ${account.host}:${account.port}</p>
+                <p><strong>Path:</strong> ${account.path}</p>
+                <p><strong>Security:</strong> ${account.security.toUpperCase()}</p>
+                ${account.uuid ? '<p><strong>UUID:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.uuid + '</code></p>' : ''}
+                ${account.password ? '<p><strong>Password:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.password + '</code></p>' : ''}
+                <p><strong>Created:</strong> ${new Date(account.created).toLocaleString()}</p>
+                <div style="margin-top: 15px;">
+                    <p><strong>📋 Share Link (Copy for V2Ray/Nekobox):</strong></p>
+                    <textarea class="form-control" readonly style="font-family: monospace; font-size: 12px; height: 80px;" id="link-${account.id}">${account.link}</textarea>
+                    <button class="btn btn-primary" style="margin-top: 10px;" onclick="copyToClipboard('link-${account.id}')">📋 Copy Link</button>
+                    <button class="btn btn-danger" style="margin-top: 10px;" onclick="deleteAccount('${account.id}')">🗑️ Delete</button>
+                </div>
+            `;
+            
+            accountsList.insertBefore(accountCard, accountsList.firstChild);
+            accountDisplay.style.display = 'block';
+        }
+        
+        function loadAccounts() {
+            addLog('Loading accounts...', 'info');
+            
+            fetch('/api/accounts')
+                .then(response => response.json())
+                .then(data => {
+                    const accountDisplay = document.getElementById('account-display');
+                    const accountsList = document.getElementById('accounts-list');
+                    accountsList.innerHTML = '';
+                    
+                    if (data.accounts && data.accounts.length > 0) {
+                        data.accounts.forEach(account => displayAccount(account));
+                        addLog('Loaded ' + data.accounts.length + ' accounts', 'success');
+                    } else {
+                        accountsList.innerHTML = '<p style="text-align: center; opacity: 0.7;">No accounts created yet</p>';
+                        accountDisplay.style.display = 'block';
+                        addLog('No accounts found', 'warning');
+                    }
+                })
+                .catch(error => addLog('Error loading accounts: ' + error.message, 'error'));
+        }
+        
+        function deleteAccount(accountId) {
+            if (!confirm('Are you sure you want to delete this account?')) {
+                return;
+            }
+            
+            addLog('Deleting account...', 'info');
+            
+            fetch('/api/accounts?id=' + accountId, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog('Account deleted successfully', 'success');
+                    loadAccounts();
+                } else {
+                    addLog('Failed to delete account: ' + data.message, 'error');
+                }
+            })
+            .catch(error => addLog('Error deleting account: ' + error.message, 'error'));
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999);
+            
+            try {
+                document.execCommand('copy');
+                addLog('Link copied to clipboard!', 'success');
+                
+                // Visual feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'linear-gradient(45deg, var(--success), #2ecc71)';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            } catch (err) {
+                // Fallback for modern browsers
+                navigator.clipboard.writeText(element.value).then(() => {
+                    addLog('Link copied to clipboard!', 'success');
+                }).catch(err => {
+                    addLog('Failed to copy: ' + err.message, 'error');
+                });
+            }
+        }
+        
         // Initialize
         addLog('VLES Trojan Worker initialized successfully', 'success');
         updateStats();
+        
+        // Auto-fill host with current domain
+        const currentHost = window.location.hostname;
+        if (currentHost && currentHost !== 'localhost') {
+            document.getElementById('acc-host').value = currentHost;
+        }
         
         // Update stats every 5 seconds
         setInterval(updateStats, 5000);
@@ -1219,5 +1569,120 @@ async function handleStats(request, corsHeaders) {
   
   return new Response(JSON.stringify(stats), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleAccounts(request, corsHeaders) {
+  if (request.method === 'GET') {
+    const url = new URL(request.url);
+    const accountId = url.searchParams.get('id');
+    const protocol = url.searchParams.get('protocol');
+    
+    if (accountId) {
+      const account = vlesProxy.accountManager.getAccount(accountId);
+      if (account) {
+        return new Response(JSON.stringify(account), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else {
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Account not found'
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else if (protocol) {
+      const accounts = vlesProxy.accountManager.getAccountsByProtocol(protocol);
+      return new Response(JSON.stringify({ accounts }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } else {
+      const accounts = vlesProxy.accountManager.getAllAccounts();
+      return new Response(JSON.stringify({ accounts }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+  
+  if (request.method === 'POST') {
+    try {
+      const body = await request.json();
+      const { protocol, host, port, path, name, security } = body;
+      
+      if (!protocol || !host || !port || !path || !name) {
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Missing required fields: protocol, host, port, path, name'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      const account = vlesProxy.accountManager.createAccount(
+        protocol, 
+        host, 
+        port, 
+        path, 
+        name, 
+        security || 'tls'
+      );
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Account created successfully',
+        account: account
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: error.message
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+  
+  if (request.method === 'DELETE') {
+    const url = new URL(request.url);
+    const accountId = url.searchParams.get('id');
+    
+    if (accountId) {
+      const deleted = vlesProxy.accountManager.deleteAccount(accountId);
+      if (deleted) {
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Account deleted successfully'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else {
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Account not found'
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    
+    return new Response(JSON.stringify({
+      success: false,
+      message: 'Account ID required'
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  return new Response('Method Not Allowed', { 
+    status: 405, 
+    headers: corsHeaders 
   });
 }
