@@ -101,46 +101,28 @@ https://localhost:8787
 # Deploy to Cloudflare Workers
 wrangler deploy
 
-# Or deploy to specific environment
+# Or deploy to a specific environment
 wrangler deploy --env production
-
-# For VLESS/Trojan WebSocket support
-wrangler deploy --env production --websocket
 ```
 
-### 4. **VLESS & Trojan Specific Deployment**
+### 4. **VLESS & Trojan Notes (WebSocket)**
 
-#### WebSocket Configuration
-Ensure your Wrangler configuration includes:
-```toml
-[websocket]
-enabled = true
-max_connections = 100
-idle_timeout = 300
-```
+WebSocket support is handled by the Worker code itself — Wrangler does not require any special `--websocket` flag or extra `wrangler.toml` sections.
 
-#### Protocol Optimization
-For best performance with VLESS and Trojan:
-```toml
-[protocol]
-vless = { enabled = true, websocket = true }
-trojan = { enabled = true, websocket = true }
-```
-
-#### Resource Limits
-Recommended limits for VLESS/Trojan:
+If you expect heavy traffic, you can raise the per-invocation CPU limit:
 ```toml
 [limits]
-cpu_ms = 200  # For protocol processing
-memory = 256  # For WebSocket connections
+cpu_ms = 200
 ```
 
-### 4. **Configure Domain (Optional)**
+### 5. **Configure Domain (Optional)**
+
+If you want to bind the Worker to a custom hostname/zone, configure `routes` as an array:
 ```toml
-# Update wrangler.toml
-[[routes]]
-pattern = "your-domain.com/*"
-zone_name = "your-domain.com"
+# wrangler.toml
+routes = [
+  { pattern = "your-domain.com/*", zone_name = "your-domain.com" }
+]
 ```
 
 ## 🎮 Usage Guide
