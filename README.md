@@ -1,1 +1,349 @@
-# shotsped
+# 🚀 VLES Trojan Worker - Advanced Proxy Solution
+
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)](https://workers.cloudflare.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Protocols](https://img.shields.io/badge/Protocols-All-4CAF50.svg)](#protocols)
+[![AI](https://img.shields.io/badge/AI-Enabled-blue.svg)](#ai-features)
+
+A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered error handling, and a luxurious web interface. Built for Cloudflare Workers deployment with enterprise-grade features.
+
+## ✨ Key Features
+
+### 🎯 **Full Protocol Support**
+- **HTTP/HTTPS** - Standard web proxy
+- **SOCKS4/SOCKS5** - Socket proxy protocols  
+- **Trojan** - Modern proxy protocol
+- **VLESS** - Lightweight proxy protocol
+- **VMess** - V2Ray proxy protocol
+- **Shadowsocks** - Encrypted proxy protocol
+
+### 🤖 **AI-Powered Error Handling**
+- Real-time error analysis and classification
+- Intelligent solution recommendations
+- Pattern-based error detection
+- Severity assessment and alerts
+- Automated troubleshooting suggestions
+
+### 💎 **Luxury Web Interface**
+- Modern, responsive design with premium aesthetics
+- Real-time statistics and monitoring
+- Interactive configuration management
+- Advanced logging with color-coded entries
+- Mobile-friendly responsive layout
+
+### 🛡️ **Enterprise Features**
+- CORS support for cross-origin requests
+- Rate limiting and connection management
+- Comprehensive logging and monitoring
+- Route management and configuration
+- Health checks and uptime monitoring
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Web Browser   │────│  Cloudflare     │────│  VLES Worker    │
+│                 │    │  Workers        │    │                 │
+│ - Config UI     │    │ - Proxy Router  │    │ - AI Analyzer   │
+│ - Real-time     │    │ - Load Balancer │    │ - Protocol      │
+│   Stats         │    │ - Rate Limiter  │    │   Handler       │
+│ - Log Viewer    │    │ - Error Handler │    │ - Route Manager │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                       ┌──────────────────┐
+                       │  Target Servers  │
+                       │ - HTTP/HTTPS     │
+                       │ - SOCKS          │
+                       │ - VLES/VMess     │
+                       │ - Trojan         │
+                       │ - Shadowsocks    │
+                       └──────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Cloudflare account
+- Wrangler CLI installed
+- Node.js 18+ installed
+
+### 1. **Clone and Install**
+```bash
+git clone <repository-url>
+cd vles-trojan-worker
+npm install -g wrangler
+```
+
+### 2. **Development**
+```bash
+# Start local development server
+wrangler dev
+
+# Access web interface at
+https://localhost:8787
+```
+
+### 3. **Deploy to Cloudflare**
+```bash
+# Deploy to Cloudflare Workers
+wrangler deploy
+
+# Or deploy to specific environment
+wrangler deploy --env production
+```
+
+### 4. **Configure Domain (Optional)**
+```toml
+# Update wrangler.toml
+[[routes]]
+pattern = "your-domain.com/*"
+zone_name = "your-domain.com"
+```
+
+## 🎮 Usage Guide
+
+### **Web Interface**
+
+Access the luxurious web interface at your deployed URL:
+
+1. **Dashboard Overview**
+   - Real-time connection status
+   - Total requests counter
+   - Success rate percentage
+   - System uptime tracker
+
+2. **Proxy Configuration**
+   - Select protocol (HTTP, HTTPS, SOCKS5, Trojan, etc.)
+   - Enter target URL/IP
+   - Configure port numbers
+   - Set request methods
+
+3. **Route Management**
+   - Add/remove proxy routes
+   - View active connections
+   - Monitor route performance
+
+4. **AI Error Handler**
+   - Automatic error analysis
+   - Smart solution suggestions
+   - Pattern recognition
+   - Severity assessment
+
+### **API Endpoints**
+
+#### Status Check
+```http
+GET /api/status
+```
+
+#### Proxy Request
+```http
+POST /api/proxy
+Content-Type: application/json
+
+{
+  "protocol": "http",
+  "target": "example.com",
+  "port": 80,
+  "method": "GET"
+}
+```
+
+#### Route Management
+```http
+# Add route
+POST /api/routes
+{
+  "protocol": "https",
+  "target": "api.example.com",
+  "port": 443,
+  "config": {}
+}
+
+# Remove route
+DELETE /api/routes?protocol=https&port=443
+```
+
+#### Statistics
+```http
+GET /api/stats
+```
+
+## 🔧 Configuration
+
+### **Protocol Support Matrix**
+
+| Protocol | Status | Features | Security |
+|----------|--------|----------|----------|
+| HTTP     | ✅ Full | Basic proxy, headers | Low |
+| HTTPS    | ✅ Full | SSL/TLS proxy, secure | Medium |
+| SOCKS5   | ✅ Full | Authentication, UDP | Medium |
+| Trojan   | ✅ Ready | SSL/TLS wrapper | High |
+| VLESS    | ✅ Ready | Lightweight, fast | High |
+| VMess    | ✅ Ready | V2Ray protocol | High |
+| Shadowsocks | ✅ Ready | Encryption | High |
+
+### **AI Error Patterns**
+
+The AI system recognizes and handles:
+
+```javascript
+{
+  "connection_timeout": "Connection timeout detected...",
+  "dns_error": "DNS resolution failed...",
+  "proxy_error": "Proxy server error...",
+  "protocol_error": "Protocol not supported...",
+  "network_error": "Network unreachable...",
+  "authentication_error": "Authentication failed..."
+}
+```
+
+## 🎨 Customization
+
+### **Styling**
+Modify the luxury CSS in `LUXURY_CSS` constant:
+
+```css
+:root {
+  --primary-color: #1a1a2e;
+  --secondary-color: #16213e;
+  --gold-accent: #ffd700;
+  /* Customize your theme */
+}
+```
+
+### **Protocols**
+Add new protocols in `VLESRouter`:
+
+```javascript
+this.protocols = new Set([
+  'http', 'https', 'socks4', 'socks5', 
+  'trojan', 'vmess', 'vless', 'shadowsocks',
+  'your-custom-protocol'
+]);
+```
+
+### **AI Patterns**
+Extend error patterns in `VLESAI`:
+
+```javascript
+this.errorPatterns = {
+  // Add custom error patterns
+  custom_error: /your.*pattern/i,
+  // ...
+};
+```
+
+## 📊 Monitoring
+
+### **Real-time Metrics**
+- Active connections count
+- Request success rate
+- Error distribution
+- Protocol usage statistics
+- Response time monitoring
+
+### **Health Checks**
+Automated health checks every 5 minutes:
+
+```javascript
+// Health check endpoint
+GET /api/status
+```
+
+### **Logging**
+Comprehensive logging with:
+- Error categorization
+- AI analysis results
+- Performance metrics
+- Security events
+
+## 🛡️ Security
+
+### **Features**
+- CORS protection
+- Input validation
+- Rate limiting
+- Error sanitization
+- Secure headers
+
+### **Best Practices**
+- Use HTTPS endpoints
+- Implement authentication
+- Monitor access logs
+- Regular security updates
+
+## 🔍 Troubleshooting
+
+### **Common Issues**
+
+1. **Connection Timeouts**
+   - Check network connectivity
+   - Verify proxy settings
+   - AI suggests timeout solutions
+
+2. **DNS Errors**
+   - Validate domain names
+   - Check DNS configuration
+   - AI provides DNS troubleshooting
+
+3. **Protocol Errors**
+   - Verify supported protocols
+   - Check configuration syntax
+   - AI analyzes protocol compatibility
+
+## 🚀 Performance
+
+### **Optimizations**
+- Efficient routing algorithms
+- Connection pooling
+- Memory management
+- Cache optimization
+
+### **Scaling**
+- Horizontal scaling via Cloudflare
+- Load balancing
+- Geographic distribution
+- Auto-scaling capabilities
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+### **Development Guidelines**
+- Follow ES2022+ standards
+- Maintain test coverage
+- Document new features
+- Follow security best practices
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Cloudflare Workers platform
+- VLES/VLESS protocol developers
+- AI error handling patterns
+- Modern web UI frameworks
+
+## 📞 Support
+
+- 📧 Email: support@vles-worker.com
+- 💬 Discord: [VLES Community](https://discord.gg/vles)
+- 📖 Documentation: [Wiki](https://github.com/vles/worker/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/vles/worker/issues)
+
+---
+
+<div align="center">
+
+**🚀 VLES Trojan Worker - Where Advanced Proxy Meets AI Intelligence**
+
+[Deploy Now](https://dash.cloudflare.com/) • [Documentation](https://github.com/vles/worker/wiki) • [Community](https://discord.gg/vles)
+
+</div>
