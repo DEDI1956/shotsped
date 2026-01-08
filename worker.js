@@ -439,8 +439,43 @@ class VLESRouter {
 class AccountManager {
   constructor() {
     this.accounts = new Map();
+    this.kv = null;
   }
-  
+
+  setKV(kvInstance) {
+    this.kv = kvInstance;
+    this.loadFromKV();
+  }
+
+  async loadFromKV() {
+    if (!this.kv) return;
+
+    try {
+      const data = await this.kv.get('accounts', 'json');
+      if (data && Array.isArray(data)) {
+        this.accounts.clear();
+        data.forEach(acc => {
+          this.accounts.set(acc.id, acc);
+        });
+        console.log(`[AccountManager] Loaded ${data.length} accounts from KV`);
+      }
+    } catch (error) {
+      console.error('[AccountManager] Failed to load from KV:', error.message);
+    }
+  }
+
+  async saveToKV() {
+    if (!this.kv) return;
+
+    try {
+      const accounts = Array.from(this.accounts.values());
+      await this.kv.put('accounts', JSON.stringify(accounts));
+      console.log(`[AccountManager] Saved ${accounts.length} accounts to KV`);
+    } catch (error) {
+      console.error('[AccountManager] Failed to save to KV:', error.message);
+    }
+  }
+
   generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
@@ -448,7 +483,7 @@ class AccountManager {
       return v.toString(16);
     });
   }
-  
+
   generatePassword(length = 32) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let password = '';
@@ -457,7 +492,7 @@ class AccountManager {
     }
     return password;
   }
-  
+
   createVLESSLink(uuid, host, port, path, security, name, type = 'ws') {
     const params = new URLSearchParams({
       type: type,
@@ -465,15 +500,15 @@ class AccountManager {
       path: path,
       host: host
     });
-    
+
     // Add SNI for TLS
     if (security === 'tls') {
       params.append('sni', host);
     }
-    
+
     return `vless://${uuid}@${host}:${port}?${params.toString()}#${encodeURIComponent(name)}`;
   }
-  
+
   createTrojanLink(password, host, port, path, security, name, type = 'ws') {
     const params = new URLSearchParams({
       type: type,
@@ -481,76 +516,97 @@ class AccountManager {
       path: path,
       host: host
     });
-    
+
     // Add SNI for TLS
     if (security === 'tls') {
       params.append('sni', host);
     }
-    
+
     return `trojan://${password}@${host}:${port}?${params.toString()}#${encodeURIComponent(name)}`;
   }
-  
-  createAccount(protocol, host, port, path, name, security = 'tls') {
+
+  async createAccount(protocol, host, port, path, name, security = 'tls') {
     const accountId = this.generateUUID();
     let uuid, password, link;
-    
+
+    // Validate inputs
+    if (!protocol || !host || !port || !path || !name) {
+      throw new Error('Missing required fields: protocol, host, port, path, name');
+    }
+
     if (protocol.toLowerCase() === 'vless') {
       uuid = this.generateUUID();
       link = this.createVLESSLink(uuid, host, port, path, security, name);
-      
-      this.accounts.set(accountId, {
+
+      const account = {
         id: accountId,
         protocol: 'vless',
         uuid: uuid,
         host: host,
-        port: port,
+        port: parseInt(port),
         path: path,
         security: security,
         name: name,
         link: link,
         created: new Date().toISOString()
-      });
-      
-      return this.accounts.get(accountId);
-      
+      };
+
+      this.accounts.set(accountId, account);
+      await this.saveToKV();
+
+      return account;
+
     } else if (protocol.toLowerCase() === 'trojan') {
       password = this.generatePassword(32);
       link = this.createTrojanLink(password, host, port, path, security, name);
-      
-      this.accounts.set(accountId, {
+
+      const account = {
         id: accountId,
         protocol: 'trojan',
         password: password,
         host: host,
-        port: port,
+        port: parseInt(port),
         path: path,
         security: security,
         name: name,
         link: link,
         created: new Date().toISOString()
-      });
-      
-      return this.accounts.get(accountId);
+      };
+
+      this.accounts.set(accountId, account);
+      await this.saveToKV();
+
+      return account;
     }
-    
+
     throw new Error(`Unsupported protocol: ${protocol}`);
   }
-  
+
   getAccount(accountId) {
     return this.accounts.get(accountId);
   }
-  
+
   getAllAccounts() {
     return Array.from(this.accounts.values());
   }
-  
-  deleteAccount(accountId) {
-    return this.accounts.delete(accountId);
+
+  async deleteAccount(accountId) {
+    const deleted = this.accounts.delete(accountId);
+    if (deleted) {
+      await this.saveToKV();
+    }
+    return deleted;
   }
-  
+
   getAccountsByProtocol(protocol) {
     return Array.from(this.accounts.values()).filter(
       account => account.protocol.toLowerCase() === protocol.toLowerCase()
+    );
+  }
+
+  findAccountByPath(path) {
+    return Array.from(this.accounts.values()).find(
+      account => path === account.path || path.startsWith(account.path)
     );
   }
 }
@@ -943,60 +999,81 @@ class VLESProxy {
 }
 
 // Global instances
-const vlesProxy = new VLESProxy();
+let vlesProxy = null;
 
 // Worker entry point
 export default {
   async fetch(request, env, ctx) {
+    // Initialize proxy with env if available
+    if (!vlesProxy) {
+      vlesProxy = new VLESProxy();
+      // Load accounts from KV if available
+      if (env && env.ACCOUNTS_KV) {
+        vlesProxy.accountManager.setKV(env.ACCOUNTS_KV);
+      }
+    }
+
     const url = new URL(request.url);
-    
+
     // CORS headers for all responses
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Upgrade, Connection',
       'Access-Control-Max-Age': '86400'
     };
-    
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 200, headers: corsHeaders });
     }
-    
+
     try {
+      // WebSocket handling for VLESS/Trojan
+      if (request.headers.get('upgrade') === 'websocket') {
+        const path = url.pathname;
+        // Check if path matches any account
+        const accounts = vlesProxy.accountManager.getAllAccounts();
+        const account = accounts.find(acc => path === acc.path || path.startsWith(acc.path));
+
+        if (account) {
+          return handleProxyWebSocket(request, account, corsHeaders);
+        }
+      }
+
       // Route handling
       switch (url.pathname) {
         case '/':
           return handleWebUI(request, corsHeaders);
-        
+
         case '/api/status':
           return handleStatus(request, corsHeaders);
-        
+
         case '/api/config':
           return handleConfig(request, corsHeaders);
-        
+
         case '/api/proxy':
           return handleProxy(request, corsHeaders);
-        
+
         case '/api/routes':
           return handleRoutes(request, corsHeaders);
-        
+
         case '/api/stats':
           return handleStats(request, corsHeaders);
-        
+
         case '/api/accounts':
           return handleAccounts(request, corsHeaders);
-        
+
         default:
-          return new Response('Not Found', { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+          return new Response('Not Found', {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
           });
       }
-      
+
     } catch (error) {
       const aiAnalysis = vlesProxy.ai.analyzeError(error.message);
-      
+
       return new Response(JSON.stringify({
         error: true,
         message: error.message,
@@ -1599,7 +1676,7 @@ async function handleAccounts(request, corsHeaders) {
     const url = new URL(request.url);
     const accountId = url.searchParams.get('id');
     const protocol = url.searchParams.get('protocol');
-    
+
     if (accountId) {
       const account = vlesProxy.accountManager.getAccount(accountId);
       if (account) {
@@ -1627,12 +1704,12 @@ async function handleAccounts(request, corsHeaders) {
       });
     }
   }
-  
+
   if (request.method === 'POST') {
     try {
       const body = await request.json();
       const { protocol, host, port, path, name, security } = body;
-      
+
       if (!protocol || !host || !port || !path || !name) {
         return new Response(JSON.stringify({
           success: false,
@@ -1642,16 +1719,17 @@ async function handleAccounts(request, corsHeaders) {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      
-      const account = vlesProxy.accountManager.createAccount(
-        protocol, 
-        host, 
-        port, 
-        path, 
-        name, 
+
+      // Create account asynchronously
+      const account = await vlesProxy.accountManager.createAccount(
+        protocol,
+        host,
+        port,
+        path,
+        name,
         security || 'tls'
       );
-      
+
       return new Response(JSON.stringify({
         success: true,
         message: 'Account created successfully',
@@ -1660,6 +1738,7 @@ async function handleAccounts(request, corsHeaders) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (error) {
+      console.error('[handleAccounts] Error creating account:', error);
       return new Response(JSON.stringify({
         success: false,
         message: error.message
@@ -1669,13 +1748,13 @@ async function handleAccounts(request, corsHeaders) {
       });
     }
   }
-  
+
   if (request.method === 'DELETE') {
     const url = new URL(request.url);
     const accountId = url.searchParams.get('id');
-    
+
     if (accountId) {
-      const deleted = vlesProxy.accountManager.deleteAccount(accountId);
+      const deleted = await vlesProxy.accountManager.deleteAccount(accountId);
       if (deleted) {
         return new Response(JSON.stringify({
           success: true,
@@ -1693,7 +1772,7 @@ async function handleAccounts(request, corsHeaders) {
         });
       }
     }
-    
+
     return new Response(JSON.stringify({
       success: false,
       message: 'Account ID required'
@@ -1702,9 +1781,94 @@ async function handleAccounts(request, corsHeaders) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-  
-  return new Response('Method Not Allowed', { 
-    status: 405, 
-    headers: corsHeaders 
+
+  return new Response('Method Not Allowed', {
+    status: 405,
+    headers: corsHeaders
   });
+}
+
+async function handleProxyWebSocket(request, account, corsHeaders) {
+  console.log(`[ProxyWS] Connection received for account: ${account.name} (${account.protocol})`);
+
+  try {
+    // Create WebSocket pair
+    const webSocketPair = new WebSocketPair();
+    const [client, server] = Object.values(webSocketPair);
+
+    // Accept the connection
+    server.accept();
+
+    console.log(`[ProxyWS] WebSocket accepted for ${account.protocol}`);
+
+    // Handle incoming WebSocket messages
+    server.addEventListener('message', async (event) => {
+      try {
+        const data = event.data;
+
+        // Log the connection attempt
+        console.log(`[ProxyWS] Message received for ${account.protocol}, length: ${data instanceof ArrayBuffer ? data.byteLength : data.length}`);
+
+        // For VLESS protocol: validate UUID
+        if (account.protocol === 'vless') {
+          console.log(`[ProxyWS] VLESS connection attempt with UUID: ${account.uuid}`);
+          // In a real implementation, you would validate the VLESS header here
+          // For now, we just echo back to keep the connection alive
+          server.send(data);
+        }
+        // For Trojan protocol: validate password
+        else if (account.protocol === 'trojan') {
+          console.log(`[ProxyWS] Trojan connection attempt with password: ${account.password}`);
+          // In a real implementation, you would validate the Trojan header here
+          // For now, we just echo back to keep the connection alive
+          server.send(data);
+        } else {
+          server.send(JSON.stringify({
+            error: `Unsupported protocol: ${account.protocol}`
+          }));
+        }
+
+      } catch (error) {
+        console.error(`[ProxyWS] Error handling message:`, error);
+        server.send(JSON.stringify({
+          error: `WebSocket error: ${error.message}`
+        }));
+      }
+    });
+
+    // Handle WebSocket close
+    server.addEventListener('close', (event) => {
+      console.log(`[ProxyWS] WebSocket closed for ${account.name}, code: ${event.code}, reason: ${event.reason}`);
+    });
+
+    // Handle WebSocket errors
+    server.addEventListener('error', (error) => {
+      console.error(`[ProxyWS] WebSocket error:`, error);
+    });
+
+    // Send initial success message
+    server.send(JSON.stringify({
+      status: 'connected',
+      protocol: account.protocol,
+      account: account.name,
+      timestamp: new Date().toISOString()
+    }));
+
+    // Return the WebSocket response
+    return new Response(null, {
+      status: 101,
+      webSocket: client
+    });
+
+  } catch (error) {
+    console.error(`[ProxyWS] Error setting up WebSocket:`, error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'WebSocket setup failed',
+      message: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 }

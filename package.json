@@ -1,11 +1,12 @@
 {
   "name": "vles-trojan-worker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Advanced VLES Trojan Worker with AI Error Handling and Full Protocol Support",
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "setup-kv": "bash ./setup-kv.sh",
     "test": "echo \"No tests specified\" && exit 0",
     "lint": "echo \"Linting with Cloudflare Workers standards\"",
     "format": "echo \"Code formatting completed\""
