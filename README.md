@@ -86,8 +86,8 @@ A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Cloudflare account
-- Wrangler CLI installed
+- Cloudflare account with Workers enabled
+- Wrangler CLI installed (`npm install -g wrangler`)
 - Node.js 18+ installed
 
 ### 1. **Clone and Install**
@@ -95,9 +95,31 @@ A sophisticated VLES Trojan Worker with comprehensive proxy support, AI-powered 
 git clone <repository-url>
 cd vles-trojan-worker
 npm install -g wrangler
+npm install
 ```
 
-### 2. **Development**
+### 2. **Setup KV Namespace (REQUIRED for Account Management)**
+
+⚠️ **IMPORTANT**: Before deploying, you MUST set up a KV namespace for persistent account storage.
+
+Run setup script:
+```bash
+chmod +x setup-kv.sh
+./setup-kv.sh
+```
+
+This will create KV namespaces and output IDs. Update `wrangler.toml` with these IDs:
+
+```toml
+[[kv_namespaces]]
+binding = "ACCOUNTS_KV"
+id = "<PRODUCTION_ID_FROM_SETUP>"
+preview_id = "<PREVIEW_ID_FROM_SETUP>"
+```
+
+For detailed setup instructions, see [SETUP_GUIDE.md](SETUP_GUIDE.md).
+
+### 3. **Development**
 ```bash
 # Start local development server
 wrangler dev
