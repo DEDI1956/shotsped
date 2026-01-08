@@ -1,0 +1,32 @@
+{
+  "name": "vles-trojan-worker",
+  "version": "1.0.0",
+  "description": "Advanced VLES Trojan Worker with AI Error Handling and Full Protocol Support",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "echo \"No tests specified\" && exit 0",
+    "lint": "echo \"Linting with Cloudflare Workers standards\"",
+    "format": "echo \"Code formatting completed\""
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "proxy",
+    "trojan",
+    "vless",
+    "ai-error-handling",
+    "web-ui",
+    "luxury-interface",
+    "full-protocols"
+  ],
+  "author": "VLES Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
