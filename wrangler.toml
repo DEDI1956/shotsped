@@ -29,5 +29,4 @@ local_protocol = "https"
 mode = "smart"
 
 # CPU limits (enforced on Cloudflare network)
-[limits]
-cpu_ms = 200  # Increased for VLESS/Trojan protocol processing
+# Increased for VLESS/Trojan protocol processing
