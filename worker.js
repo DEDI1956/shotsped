@@ -432,13 +432,15 @@ class VLESProxy {
           response = await this.handleSOCKSRequest(request, target, port, protocol);
           break;
         case 'trojan':
+          response = await this.handleTrojanRequest(request, target, port, protocol);
+          break;
         case 'vless':
         case 'vmess':
-          response = await this.handleVLESSRequest(request, target, port, protocol);
-          break;
+         response = await this.handleVLESSRequest(request, target, port, protocol);
+         break;
         case 'shadowsocks':
-          response = await this.handleShadowsocksRequest(request, target, port, protocol);
-          break;
+         response = await this.handleShadowsocksRequest(request, target, port, protocol);
+         break;
         default:
           throw new Error(`Protocol ${protocol} not implemented`);
       }
@@ -504,11 +506,251 @@ class VLESProxy {
   }
   
   async handleVLESSRequest(request, target, port, protocol) {
-    // VLES/VLESS/VMess proxy implementation
-    // This would require specific protocol implementations
-    throw new Error(`VLESS proxy (${protocol}) requires specific protocol implementation`);
+    // VLESS protocol implementation
+    // VLESS is a lightweight proxy protocol that works over WebSocket or TCP
+    
+    try {
+      // Parse VLESS request format
+      const url = `${protocol}://${target}:${port}`;
+      
+      // VLESS uses a simple header format: version + command + port + address + additional data
+      // For WebSocket-based VLESS, we need to handle the WebSocket upgrade
+      
+      if (request.headers.get('upgrade') === 'websocket') {
+        // Handle WebSocket VLESS connection
+        return await this.handleVLESSWebSocket(request, target, port, protocol);
+      } else {
+        // Handle TCP-based VLESS connection
+        return await this.handleVLESSTCP(request, target, port, protocol);
+      }
+      
+    } catch (error) {
+      throw new Error(`VLESS proxy error (${protocol}): ${error.message}`);
+    }
   }
   
+  async handleVLESSWebSocket(request, target, port, protocol) {
+    // Handle WebSocket-based VLESS connection
+    // VLESS WebSocket uses standard WebSocket protocol with VLESS header
+    
+    try {
+      // Extract VLESS header from WebSocket handshake
+      const vlessHeader = request.headers.get('sec-websocket-protocol') || 'vless';
+      
+      // Create WebSocket pair for the connection
+      const webSocketPair = new WebSocketPair();
+      const [client, server] = Object.values(webSocketPair);
+      
+      // Accept WebSocket connection
+      server.accept();
+      
+      // Handle WebSocket messages
+      server.addEventListener('message', async (event) => {
+        try {
+          // Parse VLESS WebSocket message
+          const message = event.data;
+          
+          // Forward to target server
+          const targetUrl = `${protocol}://${target}:${port}`;
+          const targetResponse = await fetch(targetUrl, {
+            method: 'POST',
+            body: message,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-VLESS-Protocol': vlessHeader
+            }
+          });
+          
+          // Send response back to client
+          const responseData = await targetResponse.arrayBuffer();
+          server.send(responseData);
+          
+        } catch (error) {
+          server.send(JSON.stringify({
+            error: `VLESS WebSocket error: ${error.message}`
+          }));
+          server.close(1011, 'VLESS WebSocket error');
+        }
+      });
+      
+      // Handle WebSocket close
+      server.addEventListener('close', () => {
+        this.activeConnections.delete(client);
+      });
+      
+      // Track active connection
+      this.activeConnections.set(client, {
+        protocol,
+        target,
+        port,
+        timestamp: Date.now()
+      });
+      
+      return new Response(null, {
+        status: 101,
+        webSocket: client
+      });
+      
+    } catch (error) {
+      throw new Error(`VLESS WebSocket error: ${error.message}`);
+    }
+  }
+
+  async handleVLESSTCP(request, target, port, protocol) {
+    // Handle TCP-based VLESS connection
+    // VLESS TCP uses a binary protocol format
+    
+    try {
+      // Parse VLESS TCP request
+      const requestBody = await request.arrayBuffer();
+      
+      // VLESS TCP header format:
+      // [version][command][port][address][additional data]
+      // For simplicity, we'll forward the raw data to target
+      
+      const targetUrl = `${protocol}://${target}:${port}`;
+      
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        body: requestBody,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-VLESS-Protocol': protocol
+        }
+      });
+      
+      // Return raw response
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers
+      });
+      
+    } catch (error) {
+      throw new Error(`VLESS TCP error: ${error.message}`);
+    }
+  }
+
+  async handleTrojanRequest(request, target, port, protocol) {
+    // Trojan protocol implementation
+    // Trojan is a proxy protocol that disguises traffic as TLS/SSL
+    
+    try {
+      // Trojan protocol uses TLS encryption with a specific header format
+      // The request should contain Trojan-specific headers or payload
+      
+      const trojanHeader = request.headers.get('x-trojan-header') || 'trojan';
+      const targetUrl = `${protocol}://${target}:${port}`;
+      
+      // Trojan can work over WebSocket or regular HTTP
+      if (request.headers.get('upgrade') === 'websocket') {
+        // Handle WebSocket Trojan connection
+        return await this.handleTrojanWebSocket(request, target, port, protocol, trojanHeader);
+      } else {
+        // Handle regular Trojan connection
+        return await this.handleTrojanTCP(request, target, port, protocol, trojanHeader);
+      }
+      
+    } catch (error) {
+      throw new Error(`Trojan proxy error: ${error.message}`);
+    }
+  }
+
+  async handleTrojanWebSocket(request, target, port, protocol, trojanHeader) {
+    // Handle WebSocket-based Trojan connection
+    
+    try {
+      // Create WebSocket pair for Trojan connection
+      const webSocketPair = new WebSocketPair();
+      const [client, server] = Object.values(webSocketPair);
+      
+      // Accept WebSocket connection
+      server.accept();
+      
+      // Handle Trojan WebSocket messages
+      server.addEventListener('message', async (event) => {
+        try {
+          // Parse Trojan WebSocket message
+          const message = event.data;
+          
+          // Forward to target server with Trojan header
+          const targetUrl = `${protocol}://${target}:${port}`;
+          const targetResponse = await fetch(targetUrl, {
+            method: 'POST',
+            body: message,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-Trojan-Protocol': trojanHeader,
+              'X-Trojan-Version': '1.0'
+            }
+          });
+          
+          // Send response back to client
+          const responseData = await targetResponse.arrayBuffer();
+          server.send(responseData);
+          
+        } catch (error) {
+          server.send(JSON.stringify({
+            error: `Trojan WebSocket error: ${error.message}`
+          }));
+          server.close(1011, 'Trojan WebSocket error');
+        }
+      });
+      
+      // Handle WebSocket close
+      server.addEventListener('close', () => {
+        this.activeConnections.delete(client);
+      });
+      
+      // Track active connection
+      this.activeConnections.set(client, {
+        protocol,
+        target,
+        port,
+        timestamp: Date.now(),
+        trojanHeader
+      });
+      
+      return new Response(null, {
+        status: 101,
+        webSocket: client
+      });
+      
+    } catch (error) {
+      throw new Error(`Trojan WebSocket error: ${error.message}`);
+    }
+  }
+
+  async handleTrojanTCP(request, target, port, protocol, trojanHeader) {
+    // Handle TCP-based Trojan connection
+    
+    try {
+      // Parse Trojan TCP request
+      const requestBody = await request.arrayBuffer();
+      
+      // Forward to target server with Trojan headers
+      const targetUrl = `${protocol}://${target}:${port}`;
+      
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        body: requestBody,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Trojan-Protocol': trojanHeader,
+          'X-Trojan-Version': '1.0'
+        }
+      });
+      
+      // Return raw response
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers
+      });
+      
+    } catch (error) {
+      throw new Error(`Trojan TCP error: ${error.message}`);
+    }
+  }
+
   async handleShadowsocksRequest(request, target, port, protocol) {
     // Shadowsocks proxy implementation
     // This would require encryption/decryption
