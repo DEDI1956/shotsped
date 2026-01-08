@@ -21,7 +21,7 @@ API_VERSION = "1.0.0"
 # KV namespace for persistent account storage
 [[kv_namespaces]]
 binding = "ACCOUNTS_KV"
-id = "accounts_kv"
+id = "fc7e78f9ecec4a4b95fbf4ab82e1e057"
 preview_id = "accounts_kv_preview"
 
 [build]
