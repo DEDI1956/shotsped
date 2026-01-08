@@ -1011,6 +1011,26 @@ export default {
 };
 
 async function handleWebUI(request, corsHeaders) {
+  // Define emojis using String.fromCodePoint
+  const e = {
+    rocket: String.fromCodePoint(0x1F680),
+    sparkles: String.fromCodePoint(0x2728),
+    phone: String.fromCodePoint(0x1F4F1),
+    link: String.fromCodePoint(0x1F517),
+    chart: String.fromCodePoint(0x1F4CA),
+    zap: String.fromCodePoint(0x26A1),
+    timer: String.fromCodePoint(0x23F1, 0xFE0F),
+    lock: String.fromCodePoint(0x1F510),
+    clipboard: String.fromCodePoint(0x1F4CB),
+    gear: String.fromCodePoint(0x2699, 0xFE0F),
+    check: String.fromCodePoint(0x2705),
+    robot: String.fromCodePoint(0x1F916),
+    testTube: String.fromCodePoint(0x1F9EA),
+    plus: String.fromCodePoint(0x2795),
+    trash: String.fromCodePoint(0x1F5D1, 0xFE0F),
+    party: String.fromCodePoint(0x1F389)
+  };
+  
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -1023,35 +1043,35 @@ async function handleWebUI(request, corsHeaders) {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 VLES TROJAN WORKER</h1>
+            <h1>${e.rocket} VLES TROJAN WORKER</h1>
             <p>Advanced Proxy Solution with AI Error Handling</p>
             <div style="margin-top: 15px; padding: 10px; background: rgba(255, 215, 0, 0.2); border-radius: 10px; border: 1px solid var(--gold-accent);">
-                <strong>✨ NEW:</strong> Create VLESS/Trojan accounts for V2Ray, Nekobox, and more! 
-                📱 Ready-to-copy links for instant setup. Supports WS TLS & Non-TLS.
+                <strong>${e.sparkles} NEW:</strong> Create VLESS/Trojan accounts for V2Ray, Nekobox, and more! 
+                ${e.phone} Ready-to-copy links for instant setup. Supports WS TLS & Non-TLS.
             </div>
         </div>
         
         <div class="status-grid">
             <div class="status-card">
-                <h3>🔗 Connection Status</h3>
+                <h3>${e.link} Connection Status</h3>
                 <p id="connection-status">Active</p>
             </div>
             <div class="status-card">
-                <h3>📊 Total Requests</h3>
+                <h3>${e.chart} Total Requests</h3>
                 <p id="total-requests">0</p>
             </div>
             <div class="status-card">
-                <h3>⚡ Success Rate</h3>
+                <h3>${e.zap} Success Rate</h3>
                 <p id="success-rate">100%</p>
             </div>
             <div class="status-card">
-                <h3>⏱️ Uptime</h3>
+                <h3>${e.timer} Uptime</h3>
                 <p id="uptime">0s</p>
             </div>
         </div>
         
         <div class="config-section">
-            <h2>🔐 Create Account (V2Ray/Nekobox)</h2>
+            <h2>${e.lock} Create Account (V2Ray/Nekobox)</h2>
             
             <div class="form-group">
                 <label for="acc-protocol">Protocol</label>
@@ -1089,17 +1109,17 @@ async function handleWebUI(request, corsHeaders) {
                 </select>
             </div>
             
-            <button class="btn btn-success" onclick="createAccount()">➕ Create Account</button>
-            <button class="btn btn-primary" onclick="loadAccounts()">📋 Show All Accounts</button>
+            <button class="btn btn-success" onclick="createAccount()">${e.plus} Create Account</button>
+            <button class="btn btn-primary" onclick="loadAccounts()">${e.clipboard} Show All Accounts</button>
         </div>
         
         <div id="account-display" class="config-section" style="display: none;">
-            <h2>📋 Created Accounts</h2>
+            <h2>${e.clipboard} Created Accounts</h2>
             <div id="accounts-list"></div>
         </div>
         
         <div class="config-section">
-            <h2>⚙️ Proxy Configuration</h2>
+            <h2>${e.gear} Proxy Configuration</h2>
             
             <div class="form-group">
                 <label for="protocol">Protocol</label>
@@ -1134,35 +1154,35 @@ async function handleWebUI(request, corsHeaders) {
                 </select>
             </div>
             
-            <button class="btn btn-primary" onclick="testConnection()">🧪 Test Connection</button>
-            <button class="btn btn-success" onclick="addRoute()">➕ Add Route</button>
-            <button class="btn btn-danger" onclick="clearLogs()">🗑️ Clear Logs</button>
+            <button class="btn btn-primary" onclick="testConnection()">${e.testTube} Test Connection</button>
+            <button class="btn btn-success" onclick="addRoute()">${e.plus} Add Route</button>
+            <button class="btn btn-danger" onclick="clearLogs()">${e.trash} Clear Logs</button>
         </div>
         
         <div class="protocol-grid">
             <div class="protocol-card">
                 <div class="protocol-name">HTTP</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
             <div class="protocol-card">
                 <div class="protocol-name">HTTPS</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
             <div class="protocol-card">
                 <div class="protocol-name">SOCKS5</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
             <div class="protocol-card">
                 <div class="protocol-name">Trojan</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
             <div class="protocol-card">
                 <div class="protocol-name">VLESS</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
             <div class="protocol-card">
                 <div class="protocol-name">VMess</div>
-                <div class="protocol-status">✅ Active</div>
+                <div class="protocol-status">${e.check} Active</div>
             </div>
         </div>
         
@@ -1171,12 +1191,12 @@ async function handleWebUI(request, corsHeaders) {
                 <div class="ai-indicator ai-active"></div>
                 <span>AI Error Handler Active</span>
             </div>
-            <h3>🤖 AI Analysis</h3>
+            <h3>${e.robot} AI Analysis</h3>
             <div id="ai-output">AI is monitoring your connections...</div>
         </div>
         
         <div class="log-container">
-            <h3>📋 System Logs</h3>
+            <h3>${e.clipboard} System Logs</h3>
             <div id="logs"></div>
         </div>
     </div>
@@ -1250,7 +1270,7 @@ async function handleWebUI(request, corsHeaders) {
                     addLog('Connection successful!', 'success');
                     document.getElementById('ai-output').innerHTML = 
                         '<div class="log-entry log-success">' +
-                        '<strong>AI Analysis:</strong> Connection working perfectly! 🎉' +
+                        '<strong>AI Analysis:</strong> Connection working perfectly! ' + String.fromCodePoint(0x1F389) +
                         '</div>';
                 }
             })
@@ -1322,25 +1342,27 @@ async function handleWebUI(request, corsHeaders) {
             const accountDisplay = document.getElementById('account-display');
             const accountsList = document.getElementById('accounts-list');
             
+            const lock = String.fromCodePoint(0x1F510);
+            const clipboard = String.fromCodePoint(0x1F4CB);
+            const trash = String.fromCodePoint(0x1F5D1, 0xFE0F);
+            
             const accountCard = document.createElement('div');
             accountCard.className = 'status-card';
             accountCard.style.marginBottom = '20px';
-            accountCard.innerHTML = `
-                <h3>🔐 ${account.name}</h3>
-                <p><strong>Protocol:</strong> ${account.protocol.toUpperCase()}</p>
-                <p><strong>Host:</strong> ${account.host}:${account.port}</p>
-                <p><strong>Path:</strong> ${account.path}</p>
-                <p><strong>Security:</strong> ${account.security.toUpperCase()}</p>
-                ${account.uuid ? '<p><strong>UUID:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.uuid + '</code></p>' : ''}
-                ${account.password ? '<p><strong>Password:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.password + '</code></p>' : ''}
-                <p><strong>Created:</strong> ${new Date(account.created).toLocaleString()}</p>
-                <div style="margin-top: 15px;">
-                    <p><strong>📋 Share Link (Copy for V2Ray/Nekobox):</strong></p>
-                    <textarea class="form-control" readonly style="font-family: monospace; font-size: 12px; height: 80px;" id="link-${account.id}">${account.link}</textarea>
-                    <button class="btn btn-primary" style="margin-top: 10px;" onclick="copyToClipboard('link-${account.id}')">📋 Copy Link</button>
-                    <button class="btn btn-danger" style="margin-top: 10px;" onclick="deleteAccount('${account.id}')">🗑️ Delete</button>
-                </div>
-            `;
+            accountCard.innerHTML = '<h3>' + lock + ' ' + account.name + '</h3>' +
+                '<p><strong>Protocol:</strong> ' + account.protocol.toUpperCase() + '</p>' +
+                '<p><strong>Host:</strong> ' + account.host + ':' + account.port + '</p>' +
+                '<p><strong>Path:</strong> ' + account.path + '</p>' +
+                '<p><strong>Security:</strong> ' + account.security.toUpperCase() + '</p>' +
+                (account.uuid ? '<p><strong>UUID:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.uuid + '</code></p>' : '') +
+                (account.password ? '<p><strong>Password:</strong> <code style="font-size: 12px; word-break: break-all;">' + account.password + '</code></p>' : '') +
+                '<p><strong>Created:</strong> ' + new Date(account.created).toLocaleString() + '</p>' +
+                '<div style="margin-top: 15px;">' +
+                    '<p><strong>' + clipboard + ' Share Link (Copy for V2Ray/Nekobox):</strong></p>' +
+                    '<textarea class="form-control" readonly style="font-family: monospace; font-size: 12px; height: 80px;" id="link-' + account.id + '">' + account.link + '</textarea>' +
+                    '<button class="btn btn-primary" style="margin-top: 10px;" onclick="copyToClipboard(\'link-' + account.id + '\')">' + clipboard + ' Copy Link</button>' +
+                    '<button class="btn btn-danger" style="margin-top: 10px;" onclick="deleteAccount(\'' + account.id + '\')">' + trash + ' Delete</button>' +
+                '</div>';
             
             accountsList.insertBefore(accountCard, accountsList.firstChild);
             accountDisplay.style.display = 'block';
@@ -1402,7 +1424,7 @@ async function handleWebUI(request, corsHeaders) {
                 // Visual feedback
                 const btn = event.target;
                 const originalText = btn.textContent;
-                btn.textContent = '✅ Copied!';
+                btn.innerHTML = String.fromCodePoint(0x2705) + ' Copied!';
                 btn.style.background = 'linear-gradient(45deg, var(--success), #2ecc71)';
                 
                 setTimeout(() => {
